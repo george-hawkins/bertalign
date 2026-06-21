@@ -2,9 +2,10 @@ import torch
 import numpy as np
 import numba as nb
 
+
 def second_back_track(i, j, pointers, search_path, a_types):
     alignment = []
-    while ( 1 ):
+    while 1:
         j_offset = j - search_path[i][0]
         a = pointers[i][j_offset]
         s = a_types[a][0]
@@ -13,20 +14,23 @@ def second_back_track(i, j, pointers, search_path, a_types):
         tgt_range = [j - offset - 1 for offset in range(t)][::-1]
         alignment.append((src_range, tgt_range))
 
-        i = i-s
-        j = j-t
-    
+        i = i - s
+        j = j - t
+
         if i == 0 and j == 0:
             return alignment[::-1]
 
-def make_second_pass_scores(src_vecs,
-                            tgt_vecs,
-                            src_lens,
-                            tgt_lens,
-                            align_types,
-                            char_ratio,
-                            margin=False,
-                            len_penalty=False):
+
+def make_second_pass_scores(
+    src_vecs,
+    tgt_vecs,
+    src_lens,
+    tgt_lens,
+    align_types,
+    char_ratio,
+    margin=False,
+    len_penalty=False,
+):
     """
     Precompute the similarity score of every m-n bitext segment for the second
     pass. The score of a segment depends only on its endpoints and overlap
@@ -64,17 +68,17 @@ def make_second_pass_scores(src_vecs,
 
         sv = src_vecs[a_1 - 1]  # (n_src, dim)
         tv = tgt_vecs[a_2 - 1]  # (n_tgt, dim)
-        sim = sv @ tv.T         # (n_src, n_tgt) inner products
+        sim = sv @ tv.T  # (n_src, n_tgt) inner products
 
         if margin:
             # Neighbour of target sentence j: right is tgt_vecs[0, j], left is
             # tgt_vecs[0, j-a_2], both dotted with the source segment vector.
             a_st = sv @ tgt0.T
             right_t = np.zeros_like(a_st)
-            right_t[:, :n_tgt - 1] = a_st[:, 1:]
+            right_t[:, : n_tgt - 1] = a_st[:, 1:]
             left_t = np.zeros_like(a_st)
             if a_2 < n_tgt:
-                left_t[:, a_2:] = a_st[:, :n_tgt - a_2]
+                left_t[:, a_2:] = a_st[:, : n_tgt - a_2]
             tgt_neighbor = left_t + right_t
             both_t = (left_t != 0) & (right_t != 0)
             tgt_neighbor[both_t] /= 2
@@ -83,10 +87,10 @@ def make_second_pass_scores(src_vecs,
             # src_vecs[0, i-a_1], both dotted with the target segment vector.
             b_ts = src0 @ tv.T
             right_s = np.zeros_like(b_ts)
-            right_s[:n_src - 1, :] = b_ts[1:, :]
+            right_s[: n_src - 1, :] = b_ts[1:, :]
             left_s = np.zeros_like(b_ts)
             if a_1 < n_src:
-                left_s[a_1:, :] = b_ts[:n_src - a_1, :]
+                left_s[a_1:, :] = b_ts[: n_src - a_1, :]
             src_neighbor = left_s + right_s
             both_s = (left_s != 0) & (right_s != 0)
             src_neighbor[both_s] /= 2
@@ -104,12 +108,9 @@ def make_second_pass_scores(src_vecs,
 
     return scores
 
+
 @nb.jit(nopython=True, fastmath=True, cache=True)
-def second_pass_align(scores,
-                      w,
-                      search_path,
-                      align_types,
-                      skip):
+def second_pass_align(scores, w, search_path, align_types, skip):
     """
     Perform the second-pass alignment to extract m-n bitext segments.
     Args:
@@ -142,11 +143,13 @@ def second_pass_align(scores,
                 prev_i = i - a_1
                 prev_j = j - a_2
 
-                if prev_i < 0 or prev_j < 0 :  # no previous cell in DP table
+                if prev_i < 0 or prev_j < 0:  # no previous cell in DP table
                     continue
                 prev_i_start = search_path[prev_i][0]
-                prev_i_end =  search_path[prev_i][1]
-                if prev_j < prev_i_start or prev_j > prev_i_end: # out of bound of cost matrix
+                prev_i_end = search_path[prev_i][1]
+                if (
+                    prev_j < prev_i_start or prev_j > prev_i_end
+                ):  # out of bound of cost matrix
                     continue
                 prev_j_offset = prev_j - prev_i_start
                 score = cost[prev_i][prev_j_offset]
@@ -168,6 +171,7 @@ def second_pass_align(scores,
             pointers[i][j_offset] = best_a
 
     return pointers
+
 
 def find_second_search_path(align, w, src_len, tgt_len):
     """
@@ -193,7 +197,7 @@ def find_second_search_path(align, w, src_len, tgt_len):
         if last_bead_tgt != tgt_len:
             align.pop()
             align.append((src_len, tgt_len))
-    
+
     # Find the search path for each row.
     prev_src, prev_tgt = 0, 0
     path = []
@@ -203,13 +207,14 @@ def find_second_search_path(align, w, src_len, tgt_len):
         # along the Y axis being (upper_bound - lower_bound).
         lower_bound = max(0, prev_tgt - w)
         upper_bound = min(tgt_len, tgt + w)
-        path.extend([(lower_bound, upper_bound) for id in range(prev_src+1, src+1)])
+        path.extend([(lower_bound, upper_bound) for id in range(prev_src + 1, src + 1)])
         prev_src, prev_tgt = src, tgt
         width = upper_bound - lower_bound
         if width > max_w:
             max_w = width
-    path = [path[0]] + path # add the search path for row 0
+    path = [path[0]] + path  # add the search path for row 0
     return max_w + 1, np.array(path)
+
 
 def first_back_track(i, j, pointers, search_path, a_types):
     """
@@ -224,29 +229,23 @@ def first_back_track(i, j, pointers, search_path, a_types):
         alignment: list of tuples for 1-1 alignments.
     """
     alignment = []
-    while ( 1 ):
+    while 1:
         j_offset = j - search_path[i][0]
         a = pointers[i][j_offset]
         s = a_types[a][0]
         t = a_types[a][1]
-        if a == 2: # best 1-1 alignment
+        if a == 2:  # best 1-1 alignment
             alignment.append((i, j))
 
-        i = i-s
-        j = j-t
-    
-        if i == 0 and j == 0: # if reaching the origin
+        i = i - s
+        j = j - t
+
+        if i == 0 and j == 0:  # if reaching the origin
             return alignment[::-1]
 
+
 @nb.jit(nopython=True, fastmath=True, cache=True)
-def first_pass_align(src_len,
-                     tgt_len,
-                     w,
-                     search_path,
-                     align_types,
-                     dist,
-                     index
-                     ):
+def first_pass_align(src_len, tgt_len, w, search_path, align_types, dist, index):
     """
     Perform the first-pass alignment to extract only 1-1 bitext segments.
     Args:
@@ -263,14 +262,14 @@ def first_pass_align(src_len,
     # Initialize cost and backpointer matrix.
     cost = np.zeros((src_len + 1, 2 * w + 1), dtype=nb.float32)
     pointers = np.zeros((src_len + 1, 2 * w + 1), dtype=nb.uint8)
-  
+
     top_k = index.shape[1]
 
     for i in range(src_len + 1):
         i_start = search_path[i][0]
         i_end = search_path[i][1]
         for j in range(i_start, i_end + 1):
-            if i + j == 0: # initialize the origin with zero
+            if i + j == 0:  # initialize the origin with zero
                 continue
             best_score = -np.inf
             best_a = -1
@@ -279,24 +278,26 @@ def first_pass_align(src_len,
                 a_2 = align_types[a][1]
                 prev_i = i - a_1
                 prev_j = j - a_2
-                if prev_i < 0 or prev_j < 0 :  # no previous cell 
+                if prev_i < 0 or prev_j < 0:  # no previous cell
                     continue
                 prev_i_start = search_path[prev_i][0]
-                prev_i_end =  search_path[prev_i][1]
-                if prev_j < prev_i_start or prev_j > prev_i_end: # out of bound of cost matrix
+                prev_i_end = search_path[prev_i][1]
+                if (
+                    prev_j < prev_i_start or prev_j > prev_i_end
+                ):  # out of bound of cost matrix
                     continue
                 prev_j_offset = prev_j - prev_i_start
                 score = cost[prev_i][prev_j_offset]
-                
+
                 # Extract the score for 1-1 bead from the top-k search.
                 if a_1 > 0 and a_2 > 0:
                     for k in range(top_k):
-                        if index[i-1][k] == j - 1:
-                            score += dist[i-1][k]
+                        if index[i - 1][k] == j - 1:
+                            score += dist[i - 1][k]
                 if score > best_score:
                     best_score = score
                     best_a = a
-            
+
             # Update cell(i, j) with the best score
             # and rescord the trace history.
             j_offset = j - i_start
@@ -305,10 +306,8 @@ def first_pass_align(src_len,
 
     return pointers
 
-def find_first_search_path(src_len,
-                           tgt_len,
-                           min_win_size = 250,
-                           percent=0.06):
+
+def find_first_search_path(src_len, tgt_len, min_win_size=250, percent=0.06):
     """
     Find the window size and search path for the first-pass alignment.
     Args:
@@ -333,6 +332,7 @@ def find_first_search_path(src_len,
         search_path.append([win_start, win_end])
     return win_size, np.array(search_path)
 
+
 def get_alignment_types(max_alignment_size):
     """
     Get all the possible alignment types.
@@ -342,12 +342,13 @@ def get_alignment_types(max_alignment_size):
     Returns:
         alignment_types: numpy array.
     """
-    alignment_types = [[0,1], [1,0]]
+    alignment_types = [[0, 1], [1, 0]]
     for x in range(1, max_alignment_size):
         for y in range(1, max_alignment_size):
             if x + y <= max_alignment_size:
-                alignment_types.append([x, y])    
+                alignment_types.append([x, y])
     return np.array(alignment_types)
+
 
 def find_top_k_sents(src_vecs, tgt_vecs, k=3):
     """

@@ -1,8 +1,11 @@
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("torch").setLevel(logging.INFO)
 
-from bertalign import Bertalign
+# Imported after logging is configured so the model-loading logs are captured.
+from bertalign import Bertalign  # noqa: E402
+
 src = """两年以后，大兴安岭。
 “顺山倒咧——”
 随着这声嘹亮的号子，一棵如巴特农神庙的巨柱般高大的落叶松轰然倒下，叶文洁感到大地抖动了一下。她拿起斧头和短锯，开始去除巨大树身上的枝丫。每到这时，她总觉得自己是在为一个巨人整理遗体。她甚至常常有这样的想象：这巨人就是自己的父亲。两年前那个凄惨的夜晚，她在太平间为父亲整理遗容时的感觉就在这时重现。巨松上那绽开的树皮，似乎就是父亲躯体上累累的伤痕。

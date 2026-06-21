@@ -14,26 +14,28 @@ from bertalign.corelib import (
 )
 from bertalign.utils import clean_text, split_sents
 
+
 class Bertalign:
-    def __init__(self,
-                 src,
-                 tgt,
-                 max_align=5,
-                 top_k=3,
-                 win=5,
-                 skip=-0.1,
-                 margin=True,
-                 len_penalty=True,
-                 is_split=False,
-               ):
-        
+    def __init__(
+        self,
+        src,
+        tgt,
+        max_align=5,
+        top_k=3,
+        win=5,
+        skip=-0.1,
+        margin=True,
+        len_penalty=True,
+        is_split=False,
+    ):
+
         self.max_align = max_align
         self.top_k = top_k
         self.win = win
         self.skip = skip
         self.margin = margin
         self.len_penalty = len_penalty
-        
+
         src = clean_text(src)
         tgt = clean_text(tgt)
 
@@ -65,37 +67,74 @@ class Bertalign:
         self.char_ratio = char_ratio
         self.src_vecs = src_vecs
         self.tgt_vecs = tgt_vecs
-        
+
     def align_sents(self):
 
         print("Performing first-step alignment ...")
-        dist, index = find_top_k_sents(self.src_vecs[0,:], self.tgt_vecs[0,:], k=self.top_k)
-        first_alignment_types = get_alignment_types(2) # 0-1, 1-0, 1-1
+        dist, index = find_top_k_sents(
+            self.src_vecs[0, :], self.tgt_vecs[0, :], k=self.top_k
+        )
+        first_alignment_types = get_alignment_types(2)  # 0-1, 1-0, 1-1
         first_w, first_path = find_first_search_path(self.src_num, self.tgt_num)
-        first_pointers = first_pass_align(self.src_num, self.tgt_num, first_w, first_path, first_alignment_types, dist, index)
-        first_alignment = first_back_track(self.src_num, self.tgt_num, first_pointers, first_path, first_alignment_types)
-        
+        first_pointers = first_pass_align(
+            self.src_num,
+            self.tgt_num,
+            first_w,
+            first_path,
+            first_alignment_types,
+            dist,
+            index,
+        )
+        first_alignment = first_back_track(
+            self.src_num,
+            self.tgt_num,
+            first_pointers,
+            first_path,
+            first_alignment_types,
+        )
+
         print("Performing second-step alignment ...")
         second_alignment_types = get_alignment_types(self.max_align)
-        second_w, second_path = find_second_search_path(first_alignment, self.win, self.src_num, self.tgt_num)
-        second_scores = make_second_pass_scores(self.src_vecs, self.tgt_vecs, self.src_lens, self.tgt_lens,
-                                                second_alignment_types, self.char_ratio,
-                                                margin=self.margin, len_penalty=self.len_penalty)
-        second_pointers = second_pass_align(second_scores, second_w, second_path, second_alignment_types, self.skip)
-        second_alignment = second_back_track(self.src_num, self.tgt_num, second_pointers, second_path, second_alignment_types)
-        
-        print("Finished! Successfully aligned {} source sentences to {} target sentences\n".format(self.src_num, self.tgt_num))
+        second_w, second_path = find_second_search_path(
+            first_alignment, self.win, self.src_num, self.tgt_num
+        )
+        second_scores = make_second_pass_scores(
+            self.src_vecs,
+            self.tgt_vecs,
+            self.src_lens,
+            self.tgt_lens,
+            second_alignment_types,
+            self.char_ratio,
+            margin=self.margin,
+            len_penalty=self.len_penalty,
+        )
+        second_pointers = second_pass_align(
+            second_scores, second_w, second_path, second_alignment_types, self.skip
+        )
+        second_alignment = second_back_track(
+            self.src_num,
+            self.tgt_num,
+            second_pointers,
+            second_path,
+            second_alignment_types,
+        )
+
+        print(
+            "Finished! Successfully aligned {} source sentences to {} target sentences\n".format(
+                self.src_num, self.tgt_num
+            )
+        )
         self.result = second_alignment
-    
+
     def print_sents(self):
-        for bead in (self.result):
+        for bead in self.result:
             src_line = self._get_line(bead[0], self.src_sents)
             tgt_line = self._get_line(bead[1], self.tgt_sents)
             print(src_line + "\n" + tgt_line + "\n")
 
     @staticmethod
     def _get_line(bead, lines):
-        line = ''
+        line = ""
         if len(bead) > 0:
-            line = ' '.join(lines[bead[0]:bead[-1]+1])
+            line = " ".join(lines[bead[0] : bead[-1] + 1])
         return line
