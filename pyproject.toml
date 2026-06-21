@@ -22,3 +22,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["bertalign"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+# Ruff's default rule set (pyflakes + a subset of pycodestyle), pinned so the
+# selection is stable across ruff versions.
+select = ["E4", "E7", "E9", "F"]
