@@ -7,7 +7,9 @@ from bertalign.utils import *
 class Bertalign:
     def __init__(self,
                  src,
+                 src_lang,
                  tgt,
+                 tgt_lang,
                  max_align=5,
                  top_k=3,
                  win=5,
@@ -26,9 +28,7 @@ class Bertalign:
         
         src = clean_text(src)
         tgt = clean_text(tgt)
-        src_lang = detect_lang(src)
-        tgt_lang = detect_lang(tgt)
-        
+
         if is_split:
             src_sents = src.splitlines()
             tgt_sents = tgt.splitlines()

@@ -12,13 +12,24 @@ Bertalign uses [sentence-transformers](https://github.com/UKPLab/sentence-transf
 
 According to our experiments, Bertalign achieves more accurate results on [Text+Berg](./text+berg), a publicly available German-French parallel corpus, than the traditional length-, dictionary-, or MT-based alignment methods as reported in [Thompson & Koehn (2019)](https://aclanthology.org/D19-1136/)
 
-## Languges Supported
+## Languages Supported
 
-Alignment between 25 languages: Catalan (ca), Chinese (zh), Czech (cs), Danish (da), Dutch (nl), English(en), Finnish (fi), French (fr), German (de), Greek (el), Hungarian (hu), Icelandic (is), Italian (it), Lithuanian (lt), Latvain (lv), Norwegian (no), Polish (pl), Portuguese (pt), Romanian (ro), Russian (ru), Slovak (sk), Slovenian (sl), Spanish (es), Swedish (sv), and Turkish (tr).
+Bertalign aligns text across a wide range of languages. Sentence segmentation is handled by [SaT (wtpsplit)](https://github.com/segment-any-text/wtpsplit), which supports 85 languages, and cross-lingual sentence embeddings are produced by [LaBSE](https://huggingface.co/sentence-transformers/LaBSE), which covers 109 languages.
 
 ## Installation
 
-Please see [requirements.txt](./requirements.txt) for installation. 
+Bertalign uses [uv](https://docs.astral.sh/uv/) to manage Python and its dependencies. From the repository root:
+
+```bash
+uv python install 3.14   # one-time: install the pinned Python (see .python-version)
+uv sync                  # create the virtual environment and install all dependencies
+```
+
+Run the demo with:
+
+```bash
+uv run python demo.py
+```
 
 ### You can also install Bertalign and run the examples directly in a [Google Colab notebook](https://colab.research.google.com/drive/123GhXwgwmQp1F5SVZ74_uIgyxo6hLRq0?usp=sharing).
 
@@ -50,8 +61,13 @@ The fallen Dahurian larch, now bereft of branches, was ready to be taken away by
 She looked up. It was Bai Mulin. A slender, delicate man who wore glasses, he was a reporter for the Great Production News, the corps’ newspaper. He had arrived the day before yesterday to gather news about her company. Ye remembered reading his articles, which were written in a beautiful style, sensitive and fine, ill suited to the rough-hewn environment."""
 ```
 
+```
+src_lang = "zh"
+tgt_lang = "en"
+```
+
 ```python
-aligner = Bertalign(src, tgt)
+aligner = Bertalign(src, src_lang, tgt, tgt_lang)
 aligner.align_sents()
 ```
 
@@ -139,8 +155,10 @@ from bertalign.eval import *
 ```
 
 ```python
-src_dir = 'text+berg/de'
-tgt_dir = 'text+berg/fr'
+src_lang = "de"
+tgt_lang = "fr"
+src_dir = f'text+berg/{src_lang}'
+tgt_dir = f'text+berg/{tgt_lang}'
 gold_dir = 'text+berg/gold'
 ```
 
@@ -154,7 +172,7 @@ for file in os.listdir(src_dir):
     tgt = open(tgt_file, 'rt', encoding='utf-8').read()
 
     print("Start aligning {} to {}".format(src_file, tgt_file))
-    aligner = Bertalign(src, tgt, is_split=True)
+    aligner = Bertalign(src, src_lang, tgt, tgt_lang, is_split=True)
     aligner.align_sents()
     test_alignments.append(aligner.result)
 
@@ -248,9 +266,9 @@ Bertalign is released under the [GNU General Public License v3.0](./LICENCE)
 
 * [sentence-transformers](https://github.com/UKPLab/sentence-transformers)
 
-* [faiss](https://github.com/facebookresearch/faiss)
+* [wtpsplit (SaT)](https://github.com/segment-any-text/wtpsplit)
 
-* [sentence-splitter](https://github.com/mediacloud/sentence-splitter)
+* [numba](https://github.com/numba/numba)
 
 ##### Other Sentence Aligners
 

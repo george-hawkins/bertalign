@@ -1,6 +1,17 @@
 import re
-from googletrans import Translator
-from sentence_splitter import SentenceSplitter
+from wtpsplit import SaT
+
+# SaT is a multilingual segmenter, so a single model handles every language.
+# It is comparatively expensive to load, so it is instantiated lazily and
+# shared across all calls to split_sents.
+_SAT_MODEL_NAME = "sat-3l-sm"
+_sat_model = None
+
+def _get_sat():
+    global _sat_model
+    if _sat_model is None:
+        _sat_model = SaT(_SAT_MODEL_NAME)
+    return _sat_model
 
 def clean_text(text):
     clean_text = []
@@ -9,52 +20,16 @@ def clean_text(text):
     for line in lines:
         line = line.strip()
         if line:
-            line = re.sub('\s+', ' ', line)
+            line = re.sub('\\s+', ' ', line)
             clean_text.append(line)
     return "\n".join(clean_text)
     
-def detect_lang(text):
-    translator = Translator(service_urls=[
-      'translate.google.com.hk',
-    ])
-    max_len = 200
-    chunk = text[0 : min(max_len, len(text))]
-    lang = translator.detect(chunk).lang
-    if lang.startswith('zh'):
-        lang = 'zh'
-    return lang
-
 def split_sents(text, lang):
-    if lang in LANG.SPLITTER:
-        if lang == 'zh':
-            sents = _split_zh(text)
-        else:
-            splitter = SentenceSplitter(language=lang)
-            sents = splitter.split(text=text) 
-            sents = [sent.strip() for sent in sents]
-        return sents
-    else:
-        raise Exception('The language {} is not suppored yet.'.format(LANG.ISO[lang]))
-    
-def _split_zh(text, limit=1000):
-        sent_list = []
-        text = re.sub('(?P<quotation_mark>([。？！](?![”’"\'）])))', r'\g<quotation_mark>\n', text)
-        text = re.sub('(?P<quotation_mark>([。？！]|…{1,2})[”’"\'）])', r'\g<quotation_mark>\n', text)
+    # SaT segments any language it supports, so lang is not needed here; it is
+    # kept for API compatibility and used elsewhere for the human-readable name.
+    sents = _get_sat().split(text)
+    return [sent.strip() for sent in sents if sent.strip()]
 
-        sent_list_ori = text.splitlines()
-        for sent in sent_list_ori:
-            sent = sent.strip()
-            if not sent:
-                continue
-            else:
-                while len(sent) > limit:
-                    temp = sent[0:limit]
-                    sent_list.append(temp)
-                    sent = sent[limit:]
-                sent_list.append(sent)
-
-        return sent_list
-        
 def yield_overlaps(lines, num_overlaps):
     lines = [_preprocess_line(line) for line in lines]
     for overlap in range(1, num_overlaps + 1):
@@ -78,33 +53,6 @@ def _preprocess_line(line):
     return line
     
 class LANG:
-    SPLITTER = {
-        'ca': 'Catalan',
-        'zh': 'Chinese',
-        'cs': 'Czech',
-        'da': 'Danish',
-        'nl': 'Dutch',
-        'en': 'English',
-        'fi': 'Finnish',
-        'fr': 'French',
-        'de': 'German',
-        'el': 'Greek',
-        'hu': 'Hungarian',
-        'is': 'Icelandic',
-        'it': 'Italian',
-        'lt': 'Lithuanian',
-        'lv': 'Latvian',
-        'no': 'Norwegian',
-        'pl': 'Polish',
-        'pt': 'Portuguese',
-        'ro': 'Romanian',
-        'ru': 'Russian',
-        'sk': 'Slovak',
-        'sl': 'Slovenian',
-        'es': 'Spanish',
-        'sv': 'Swedish',
-        'tr': 'Turkish',
-    }
     ISO = {
 		'aa': 'Afar',
 		'ab': 'Abkhaz',

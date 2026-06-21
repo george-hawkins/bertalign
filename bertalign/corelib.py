@@ -1,8 +1,6 @@
 import torch
-import faiss
 import numpy as np
 import numba as nb
-from sys import platform
 
 def second_back_track(i, j, pointers, search_path, a_types):
     alignment = []
@@ -316,7 +314,7 @@ def first_pass_align(src_len,
                 prev_j_offset = prev_j - prev_i_start
                 score = cost[prev_i][prev_j_offset]
                 
-                # Extract the score for 1-1 bead from faiss.
+                # Extract the score for 1-1 bead from the top-k search.
                 if a_1 > 0 and a_2 > 0:
                     for k in range(top_k):
                         if index[i-1][k] == j - 1:
@@ -388,15 +386,14 @@ def find_top_k_sents(src_vecs, tgt_vecs, k=3):
         D: numpy array. Similarity score matrix of shape (num_src_sents, k).
         I: numpy array. Target index matrix of shape (num_src_sents, k).
     """
-    embedding_size = src_vecs.shape[1]
-    if torch.cuda.is_available() and platform == 'linux': # GPU version
-        res = faiss.StandardGpuResources() 
-        index = faiss.IndexFlatIP(embedding_size)
-        gpu_index = faiss.index_cpu_to_gpu(res, 0, index)
-        gpu_index.add(tgt_vecs) 
-        D, I = gpu_index.search(src_vecs, k)
-    else: # CPU version
-        index = faiss.IndexFlatIP(embedding_size)
-        index.add(tgt_vecs)
-        D, I = index.search(src_vecs, k)
-    return D, I
+    # Exact brute-force inner-product search (the original faiss IndexFlatIP was
+    # also exact). torch handles this in a couple of lines and avoids faiss,
+    # whose bundled OpenMP runtime conflicts with torch's on macOS.
+    src = torch.from_numpy(np.ascontiguousarray(src_vecs))
+    tgt = torch.from_numpy(np.ascontiguousarray(tgt_vecs))
+    if torch.cuda.is_available():
+        src, tgt = src.cuda(), tgt.cuda()
+    k = min(k, tgt.shape[0])
+    sims = src @ tgt.T  # inner products, shape (num_src_sents, num_tgt_sents)
+    D, I = torch.topk(sims, k, dim=1, largest=True, sorted=True)
+    return D.cpu().numpy(), I.cpu().numpy()
