@@ -25,11 +25,14 @@ uv python install 3.14   # one-time: install the pinned Python (see .python-vers
 uv sync                  # create the virtual environment and install all dependencies
 ```
 
-Run the demo with:
+Run the demo, which aligns Akutagawa's *Rashomon* with its English translation:
 
 ```bash
-uv run python demo.py
+uv run python examples/rashomon.py
 ```
+
+It reads the Japanese and English texts from `examples/texts/` — see
+[examples/texts/README.md](./examples/texts/README.md) for their provenance.
 
 ### You can also install Bertalign and run the examples directly in a [Google Colab notebook](https://colab.research.google.com/drive/123GhXwgwmQp1F5SVZ74_uIgyxo6hLRq0?usp=sharing).
 
