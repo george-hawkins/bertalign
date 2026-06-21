@@ -21,4 +21,7 @@ from bertalign.encoder import Encoder
 model_name = "LaBSE"
 model = Encoder(model_name)
 
-from bertalign.aligner import Bertalign
+# Imported last and re-exported as bertalign.Bertalign: aligner.py does
+# `from bertalign import model`, so `model` above must already exist when this
+# import runs -- hence the import is deliberately not at the top of the file.
+from bertalign.aligner import Bertalign  # noqa: E402,F401

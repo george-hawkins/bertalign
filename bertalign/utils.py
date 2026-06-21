@@ -14,15 +14,15 @@ def _get_sat():
     return _sat_model
 
 def clean_text(text):
-    clean_text = []
+    cleaned = []
     text = text.strip()
     lines = text.splitlines()
     for line in lines:
         line = line.strip()
         if line:
-            line = re.sub('\\s+', ' ', line)
-            clean_text.append(line)
-    return "\n".join(clean_text)
+            line = re.sub(r'\s+', ' ', line)
+            cleaned.append(line)
+    return "\n".join(cleaned)
     
 def split_sents(text, lang):
     # SaT segments any language it supports, so lang is not needed here; it is

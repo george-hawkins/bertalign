@@ -122,7 +122,7 @@ def read_alignments(file):
             try:
                 src = literal_eval(fields[0])
                 tgt = literal_eval(fields[1])
-            except:
-                raise Exception('Failed to parse line "%s"' % line.strip())
+            except Exception as e:
+                raise Exception('Failed to parse line "%s"' % line.strip()) from e
             alignments.append((src, tgt))
     return alignments

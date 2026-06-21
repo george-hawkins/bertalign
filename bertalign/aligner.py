@@ -1,8 +1,18 @@
 import numpy as np
 
 from bertalign import model
-from bertalign.corelib import *
-from bertalign.utils import *
+from bertalign.corelib import (
+    find_first_search_path,
+    find_second_search_path,
+    find_top_k_sents,
+    first_back_track,
+    first_pass_align,
+    get_alignment_types,
+    make_second_pass_scores,
+    second_back_track,
+    second_pass_align,
+)
+from bertalign.utils import LANG, clean_text, split_sents
 
 class Bertalign:
     def __init__(self,
@@ -66,10 +76,10 @@ class Bertalign:
     def align_sents(self):
 
         print("Performing first-step alignment ...")
-        D, I = find_top_k_sents(self.src_vecs[0,:], self.tgt_vecs[0,:], k=self.top_k)
+        dist, index = find_top_k_sents(self.src_vecs[0,:], self.tgt_vecs[0,:], k=self.top_k)
         first_alignment_types = get_alignment_types(2) # 0-1, 1-0, 1-1
         first_w, first_path = find_first_search_path(self.src_num, self.tgt_num)
-        first_pointers = first_pass_align(self.src_num, self.tgt_num, first_w, first_path, first_alignment_types, D, I)
+        first_pointers = first_pass_align(self.src_num, self.tgt_num, first_w, first_path, first_alignment_types, dist, index)
         first_alignment = first_back_track(self.src_num, self.tgt_num, first_pointers, first_path, first_alignment_types)
         
         print("Performing second-step alignment ...")

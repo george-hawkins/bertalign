@@ -194,9 +194,7 @@ def find_second_search_path(align, w, src_len, tgt_len):
             align.pop()
             align.append((src_len, tgt_len))
     
-    """
-    Find the search path for each row.
-    """
+    # Find the search path for each row.
     prev_src, prev_tgt = 0, 0
     path = []
     max_w = -np.inf
@@ -359,8 +357,8 @@ def find_top_k_sents(src_vecs, tgt_vecs, k=3):
         tgt_vecs: numpy array of shape (num_tgt_sents, embedding_size).
         k: int. Number of most similar target sentences.
     Returns:
-        D: numpy array. Similarity score matrix of shape (num_src_sents, k).
-        I: numpy array. Target index matrix of shape (num_src_sents, k).
+        dist: numpy array. Similarity score matrix of shape (num_src_sents, k).
+        index: numpy array. Target index matrix of shape (num_src_sents, k).
     """
     # Exact brute-force inner-product search (the original faiss IndexFlatIP was
     # also exact). torch handles this in a couple of lines and avoids faiss,
@@ -371,5 +369,5 @@ def find_top_k_sents(src_vecs, tgt_vecs, k=3):
         src, tgt = src.cuda(), tgt.cuda()
     k = min(k, tgt.shape[0])
     sims = src @ tgt.T  # inner products, shape (num_src_sents, num_tgt_sents)
-    D, I = torch.topk(sims, k, dim=1, largest=True, sorted=True)
-    return D.cpu().numpy(), I.cpu().numpy()
+    dist, index = torch.topk(sims, k, dim=1, largest=True, sorted=True)
+    return dist.cpu().numpy(), index.cpu().numpy()
