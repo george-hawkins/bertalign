@@ -178,35 +178,35 @@ The following example shows how to use Bertalign to align the Text+Berg corpus, 
 
 Please see [aligner.py](./bertalign/aligner.py) for more options to configure Bertalign.
 
+> **`is_split`** controls whether Bertalign segments the text itself. The default (`is_split=False`) treats the input as unsplit prose and runs the automatic segmenter, as in the Basic example above. Pass `is_split=True` when your input is already split into sentences — one per line — and segmentation should be skipped. The Text+Berg files below are pre-split, hence `is_split=True`.
+
 ```python
-import os
+from pathlib import Path
+
 from bertalign import Bertalign
-from bertalign.eval import * 
+from bertalign.eval import *
 ```
 
 ```python
-src_lang = "de"
-tgt_lang = "fr"
-src_dir = f'text+berg/{src_lang}'
-tgt_dir = f'text+berg/{tgt_lang}'
-gold_dir = 'text+berg/gold'
+src_dir = Path(f"text+berg/de")
+tgt_dir = Path(f"text+berg/fr")
+gold_dir = Path("text+berg/gold")
 ```
 
 ```python
 test_alignments = []
 gold_alignments = []
-for file in os.listdir(src_dir):
-    src_file = os.path.join(src_dir, file).replace("\\","/")
-    tgt_file = os.path.join(tgt_dir, file).replace("\\","/")
-    src = open(src_file, 'rt', encoding='utf-8').read()
-    tgt = open(tgt_file, 'rt', encoding='utf-8').read()
+for src_file in src_dir.iterdir():
+    tgt_file = tgt_dir / src_file.name
+    src = src_file.read_text(encoding="utf-8")
+    tgt = tgt_file.read_text(encoding="utf-8")
 
-    print("Start aligning {} to {}".format(src_file, tgt_file))
+    print(f"Start aligning {src_file} to {tgt_file}")
     aligner = Bertalign(src, tgt, is_split=True)
     aligner.align_sents()
     test_alignments.append(aligner.result)
 
-    gold_file = os.path.join(gold_dir, file)
+    gold_file = gold_dir / src_file.name
     gold_alignments.append(read_alignments(gold_file))
 ```
 
