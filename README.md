@@ -13,8 +13,8 @@
 ## What's new in this fork
 
 - **Fully up-to-date dependencies**, running on **Python 3.14** and managed end to end with **[uv](https://docs.astral.sh/uv/getting-started/installation/)** — the aim being that a single command gets you running.
-- **Leaner dependency set:** the `faiss` and `sentence-splitter` dependencies have been removed, and `requirements.txt` / `setup.py` replaced by a `pyproject.toml` and a locked `uv.lock`.
-- **Modern multilingual sentence segmentation** via **[Segment any Text (SaT)](https://github.com/segment-any-text/wtpsplit)**, an actively maintained, state-of-the-art segmenter that replaces the older `sentence-splitter`. A single model covers every language — which is what unlocks Japanese, and means you no longer tell `Bertalign(...)` which languages you are aligning. (Cross-lingual embeddings still come from the original's choice, multilingual LaBSE.)
+- **Leaner dependency set:** the `faiss`, `sentence-splitter` and `googletrans` dependencies have been removed, and `requirements.txt` / `setup.py` replaced by a `pyproject.toml` and a locked `uv.lock`.
+- **Modern multilingual sentence segmentation** via **[Segment any Text (SaT)](https://github.com/segment-any-text/wtpsplit)**, an actively maintained, state-of-the-art segmenter that replaces the older `sentence-splitter`. A single model covers all supported languages — which is what unlocks Japanese. Cross-lingual embeddings still come from the original's choice (multilingual LaBSE).
 
 <details>
 <summary><strong>Why SaT rather than the more popular spaCy / GiNZA or Stanza?</strong></summary>
@@ -32,7 +32,7 @@ uv run python examples/rashomon.py
 ```
 
 > [!NOTE]
-> That single `uv run` does everything: it installs Python 3.14, resolves the dependencies and builds the environment for you. The first run also downloads the segmentation and embedding models (~2&nbsp;GB) from Hugging Face, so allow a few minutes — subsequent runs are quick. New to uv? See its [installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+> That single `uv run` does everything: it installs Python 3.14 (if necessary), resolves the dependencies and builds the environment for you. The first run also downloads the segmentation and embedding models (~2&nbsp;GB) from Hugging Face, so allow a few minutes - subsequent runs are quicker. New to uv? See its [installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
 ---
 
@@ -307,6 +307,8 @@ Bertalign is released under the [GNU General Public License v3.0](./LICENCE)
 * [Bleualign](https://github.com/rsennrich/Bleualign)
 
 * [Vecalign](https://github.com/thompsonb/vecalign)
+
+* [SentAlign](https://github.com/steinst/SentAlign)
 
 ## Todo List
 
