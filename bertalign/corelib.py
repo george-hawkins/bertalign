@@ -19,40 +19,115 @@ def second_back_track(i, j, pointers, search_path, a_types):
         if i == 0 and j == 0:
             return alignment[::-1]
 
-@nb.jit(nopython=True, fastmath=True, cache=True)
-def second_pass_align(src_vecs,
-                      tgt_vecs,
-                      src_lens,
-                      tgt_lens,
-                      w,
-                      search_path,
-                      align_types,
-                      char_ratio,
-                      skip,
-                      margin=False,
-                      len_penalty=False):
+def make_second_pass_scores(src_vecs,
+                            tgt_vecs,
+                            src_lens,
+                            tgt_lens,
+                            align_types,
+                            char_ratio,
+                            margin=False,
+                            len_penalty=False):
     """
-    Perform the second-pass alignment to extract m-n bitext segments.
+    Precompute the similarity score of every m-n bitext segment for the second
+    pass. The score of a segment depends only on its endpoints and overlap
+    sizes (not on the DP state), so the whole thing can be computed up front
+    with vectorised matrix products rather than one dot product per DP cell.
+
     Args:
         src_vecs: numpy array of shape (max_align-1, num_src_sents, embedding_size).
         tgt_vecs: numpy array of shape (max_align-1, num_tgt_sents, embedding_size).
         src_lens: numpy array of shape (max_align-1, num_src_sents).
         tgt_lens: numpy array of shape (max_align-1, num_tgt_sents).
+        align_types: numpy array. Second-pass alignment types.
+        char_ratio: float. Source to target length ratio.
+        margin: boolean. True if choosing modified cosine similarity score.
+        len_penalty: boolean. True if applying the length-based penalty.
+    Returns:
+        scores: numpy array of shape (num_align_types, num_src_sents,
+                num_tgt_sents). scores[a, i, j] is the score of aligning the
+                segment ending at source sentence i+1 and target sentence j+1
+                under alignment type a. Entries for insertion/deletion types
+                (a_1 == 0 or a_2 == 0) are left at zero; the DP uses the skip
+                cost for those instead.
+    """
+    n_src = src_vecs.shape[1]
+    n_tgt = tgt_vecs.shape[1]
+    src0 = src_vecs[0]  # single-sentence (overlap 0) embeddings, used for neighbors
+    tgt0 = tgt_vecs[0]
+
+    scores = np.zeros((align_types.shape[0], n_src, n_tgt), dtype=np.float32)
+    for a in range(align_types.shape[0]):
+        a_1 = int(align_types[a][0])
+        a_2 = int(align_types[a][1])
+        if a_1 == 0 or a_2 == 0:  # deletion / insertion: scored with skip in the DP
+            continue
+
+        sv = src_vecs[a_1 - 1]  # (n_src, dim)
+        tv = tgt_vecs[a_2 - 1]  # (n_tgt, dim)
+        sim = sv @ tv.T         # (n_src, n_tgt) inner products
+
+        if margin:
+            # Neighbour of target sentence j: right is tgt_vecs[0, j], left is
+            # tgt_vecs[0, j-a_2], both dotted with the source segment vector.
+            a_st = sv @ tgt0.T
+            right_t = np.zeros_like(a_st)
+            right_t[:, :n_tgt - 1] = a_st[:, 1:]
+            left_t = np.zeros_like(a_st)
+            if a_2 < n_tgt:
+                left_t[:, a_2:] = a_st[:, :n_tgt - a_2]
+            tgt_neighbor = left_t + right_t
+            both_t = (left_t != 0) & (right_t != 0)
+            tgt_neighbor[both_t] /= 2
+
+            # Neighbour of source sentence i: right is src_vecs[0, i], left is
+            # src_vecs[0, i-a_1], both dotted with the target segment vector.
+            b_ts = src0 @ tv.T
+            right_s = np.zeros_like(b_ts)
+            right_s[:n_src - 1, :] = b_ts[1:, :]
+            left_s = np.zeros_like(b_ts)
+            if a_1 < n_src:
+                left_s[a_1:, :] = b_ts[:n_src - a_1, :]
+            src_neighbor = left_s + right_s
+            both_s = (left_s != 0) & (right_s != 0)
+            src_neighbor[both_s] /= 2
+
+            sim = sim - (tgt_neighbor + src_neighbor) / 2
+
+        if len_penalty:
+            src_l = src_lens[a_1 - 1].astype(np.float64)[:, None]
+            tgt_l = tgt_lens[a_2 - 1].astype(np.float64)[None, :] * char_ratio
+            min_len = np.minimum(src_l, tgt_l)
+            max_len = np.maximum(src_l, tgt_l)
+            sim = sim * np.log2(1 + min_len / max_len)
+
+        scores[a] = sim
+
+    return scores
+
+@nb.jit(nopython=True, fastmath=True, cache=True)
+def second_pass_align(scores,
+                      w,
+                      search_path,
+                      align_types,
+                      skip):
+    """
+    Perform the second-pass alignment to extract m-n bitext segments.
+    Args:
+        scores: numpy array of shape (num_align_types, num_src_sents,
+                num_tgt_sents) of precomputed segment scores (see
+                make_second_pass_scores).
         w: int. Predefined window size for the second-pass alignment.
         search_path: numpy array. Second-pass alignment search path.
         align_types: numpy array. Second-pass alignment types.
-        char_ratio: float. Source to target length ratio.
-        skip: float. Cost for instertion and deletion.
-        margin: boolean. True if choosing modified cosine similarity score.
+        skip: float. Cost for insertion and deletion.
     Returns:
         pointers: numpy array recording best alignments for each DP cell.
     """
     # Intialize cost and backpointer matrix
-    src_len = src_vecs.shape[1]
-    tgt_len = tgt_vecs.shape[1]
+    src_len = scores.shape[1]
     cost = np.zeros((src_len + 1, w), dtype=nb.float32)
     pointers = np.zeros((src_len + 1, w), dtype=nb.uint8)
-  
+
     for i in range(src_len + 1):
         i_start = search_path[i][0]
         i_end = search_path[i][1]
@@ -67,7 +142,7 @@ def second_pass_align(src_vecs,
                 prev_i = i - a_1
                 prev_j = j - a_2
 
-                if prev_i < 0 or prev_j < 0 :  # no previous cell in DP table 
+                if prev_i < 0 or prev_j < 0 :  # no previous cell in DP table
                     continue
                 prev_i_start = search_path[prev_i][0]
                 prev_i_end =  search_path[prev_i][1]
@@ -79,119 +154,20 @@ def second_pass_align(src_vecs,
                 if a_1 == 0 or a_2 == 0:  # deletion or insertion
                     cur_score = skip
                 else:
-                    cur_score = calculate_similarity_score(src_vecs,
-                                                           tgt_vecs,
-                                                           i, j, a_1, a_2, 
-                                                           src_len, tgt_len,
-                                                           margin=margin)
-                    if len_penalty:
-                        penalty = calculate_length_penalty(src_lens, tgt_lens, i, j,
-                                                           a_1, a_2, char_ratio)
-                        cur_score *= penalty
-        
+                    cur_score = scores[a, i - 1, j - 1]
+
                 score += cur_score
                 if score > best_score:
                     best_score = score
                     best_a = a
-            
+
             # Update cell(i, j) with the best score
             # and rescord the trace history.
             j_offset = j - i_start
             cost[i][j_offset] = best_score
             pointers[i][j_offset] = best_a
-      
+
     return pointers
-
-@nb.jit(nopython=True, fastmath=True, cache=True)
-def calculate_similarity_score(src_vecs,
-                               tgt_vecs,
-                               src_idx,
-                               tgt_idx,
-                               src_overlap,
-                               tgt_overlap,
-                               src_len,
-                               tgt_len,
-                               margin=False):
-  
-    """
-    Calulate the semantics-based similarity score of bitext segment.
-    """
-    src_v = src_vecs[src_overlap - 1, src_idx - 1, :]
-    tgt_v = tgt_vecs[tgt_overlap - 1, tgt_idx - 1, :]
-    similarity = nb_dot(src_v, tgt_v)
-    if margin:
-        tgt_neighbor_ave_sim = calculate_neighbor_similarity(src_v, 
-                                                             tgt_overlap,
-                                                             tgt_idx,
-                                                             tgt_len,
-                                                             tgt_vecs)
-    
-        src_neighbor_ave_sim = calculate_neighbor_similarity(tgt_v,
-                                                             src_overlap,
-                                                             src_idx,
-                                                             src_len,
-                                                             src_vecs)
-    
-        neighbor_ave_sim = (tgt_neighbor_ave_sim + src_neighbor_ave_sim) / 2
-        similarity -= neighbor_ave_sim
-
-    return similarity
-
-@nb.jit(nopython=True, fastmath=True, cache=True)
-def calculate_neighbor_similarity(vec, overlap, sent_idx, sent_len, db):
-    left_idx = sent_idx - overlap
-    right_idx = sent_idx + 1
-    
-    if right_idx <= sent_len:
-        right_embed = db[0, right_idx - 1, :]
-        neighbor_right_sim = nb_dot(vec, right_embed)
-    else:
-        neighbor_right_sim = 0
- 
-    if left_idx > 0:
-        left_embed = db[0, left_idx - 1, :]
-        neighbor_left_sim = nb_dot(vec, left_embed)
-    else:
-        neighbor_left_sim = 0
-    
-    neighbor_ave_sim = neighbor_left_sim + neighbor_right_sim
-    if neighbor_right_sim and neighbor_left_sim:
-        neighbor_ave_sim /= 2
-    
-    return neighbor_ave_sim
-
-@nb.jit(nopython=True, fastmath=True, cache=True)
-def calculate_length_penalty(src_lens,
-                             tgt_lens,
-                             src_idx,
-                             tgt_idx,
-                             src_overlap,
-                             tgt_overlap,
-                             char_ratio):
-    """
-    Calculate the length-based similarity score of bitext segment.
-    Args:
-        src_lens: numpy array. Source sentence lengths vector.
-        tgt_lens: numpy array. Target sentence lengths vector.
-        src_idx: int. Source sentence index.
-        tgt_idx: int. Target sentence index.
-        src_overlap: int. Number of sentences in source segment.
-        tgt_overlap: int. Number of sentences in target segment.
-        char_ratio: float. Source to target sentence length ratio.
-    Returns:
-        length_penalty: float. Similarity score based on length differences.
-    """
-    src_l = src_lens[src_overlap - 1, src_idx - 1]
-    tgt_l = tgt_lens[tgt_overlap - 1, tgt_idx - 1]
-    tgt_l = tgt_l * char_ratio
-    min_len = min(src_l, tgt_l)
-    max_len = max(src_l, tgt_l)
-    length_penalty = np.log2(1 + min_len / max_len)
-    return length_penalty
-
-@nb.jit(nopython=True, fastmath=True, cache=True)
-def nb_dot(x, y):
-    return np.dot(x,y)
 
 def find_second_search_path(align, w, src_len, tgt_len):
     """
