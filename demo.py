@@ -21,9 +21,7 @@ Ye Wenjie could only describe the deforestation that she witnessed as madness. T
 The fallen Dahurian larch, now bereft of branches, was ready to be taken away by tractor. Ye gently caressed the freshly exposed cross section of the felled trunk. She did this often, as though such surfaces were giant wounds, as though she could feel the tree’s pain. Suddenly, she saw another hand lightly stroking the matching surface of the stump a few feet away. The tremors in that hand revealed a heart that resonated with hers. Though the hand was pale, she could tell it belonged to a man.
 She looked up. It was Bai Mulin. A slender, delicate man who wore glasses, he was a reporter for the Great Production News, the corps’ newspaper. He had arrived the day before yesterday to gather news about her company. Ye remembered reading his articles, which were written in a beautiful style, sensitive and fine, ill suited to the rough-hewn environment."""
 
-src_lang = "zh"
-tgt_lang = "en"
-aligner = Bertalign(src, src_lang, tgt, tgt_lang)
+aligner = Bertalign(src, tgt)
 aligner.align_sents()
 aligner.print_sents()
 

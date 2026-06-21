@@ -35,7 +35,7 @@ uv run python demo.py
 
 ## Basic example
 
-Just import *Bertalign* and initialize it with the source and target text, which will detect the source and target language automatically and split both texts into sentences. Then invoke the method *align_sents()*  to align sentences and print out the result with *print_sents()*.
+Just import *Bertalign* and initialize it with the source and target text. It splits both texts into sentences automatically — the multilingual segmenter handles any language, so you don't need to specify which. Then invoke the method *align_sents()* to align sentences and print out the result with *print_sents()*.
 
 ```python
 from bertalign import Bertalign
@@ -61,13 +61,8 @@ The fallen Dahurian larch, now bereft of branches, was ready to be taken away by
 She looked up. It was Bai Mulin. A slender, delicate man who wore glasses, he was a reporter for the Great Production News, the corps’ newspaper. He had arrived the day before yesterday to gather news about her company. Ye remembered reading his articles, which were written in a beautiful style, sensitive and fine, ill suited to the rough-hewn environment."""
 ```
 
-```
-src_lang = "zh"
-tgt_lang = "en"
-```
-
 ```python
-aligner = Bertalign(src, src_lang, tgt, tgt_lang)
+aligner = Bertalign(src, tgt)
 aligner.align_sents()
 ```
 
@@ -172,7 +167,7 @@ for file in os.listdir(src_dir):
     tgt = open(tgt_file, 'rt', encoding='utf-8').read()
 
     print("Start aligning {} to {}".format(src_file, tgt_file))
-    aligner = Bertalign(src, src_lang, tgt, tgt_lang, is_split=True)
+    aligner = Bertalign(src, tgt, is_split=True)
     aligner.align_sents()
     test_alignments.append(aligner.result)
 

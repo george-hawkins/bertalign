@@ -12,14 +12,12 @@ from bertalign.corelib import (
     second_back_track,
     second_pass_align,
 )
-from bertalign.utils import LANG, clean_text, split_sents
+from bertalign.utils import clean_text, split_sents
 
 class Bertalign:
     def __init__(self,
                  src,
-                 src_lang,
                  tgt,
-                 tgt_lang,
                  max_align=5,
                  top_k=3,
                  win=5,
@@ -43,17 +41,14 @@ class Bertalign:
             src_sents = src.splitlines()
             tgt_sents = tgt.splitlines()
         else:
-            src_sents = split_sents(src, src_lang)
-            tgt_sents = split_sents(tgt, tgt_lang)
- 
+            src_sents = split_sents(src)
+            tgt_sents = split_sents(tgt)
+
         src_num = len(src_sents)
         tgt_num = len(tgt_sents)
-        
-        src_lang = LANG.ISO[src_lang]
-        tgt_lang = LANG.ISO[tgt_lang]
-        
-        print("Source language: {}, Number of sentences: {}".format(src_lang, src_num))
-        print("Target language: {}, Number of sentences: {}".format(tgt_lang, tgt_num))
+
+        print("Number of source sentences: {}".format(src_num))
+        print("Number of target sentences: {}".format(tgt_num))
 
         print("Embedding source and target text using {} ...".format(model.model_name))
         src_vecs, src_lens = model.transform(src_sents, max_align - 1)
@@ -61,8 +56,6 @@ class Bertalign:
 
         char_ratio = np.sum(src_lens[0,]) / np.sum(tgt_lens[0,])
 
-        self.src_lang = src_lang
-        self.tgt_lang = tgt_lang
         self.src_sents = src_sents
         self.tgt_sents = tgt_sents
         self.src_num = src_num
@@ -91,7 +84,7 @@ class Bertalign:
         second_pointers = second_pass_align(second_scores, second_w, second_path, second_alignment_types, self.skip)
         second_alignment = second_back_track(self.src_num, self.tgt_num, second_pointers, second_path, second_alignment_types)
         
-        print("Finished! Successfully aligning {} {} sentences to {} {} sentences\n".format(self.src_num, self.src_lang, self.tgt_num, self.tgt_lang))
+        print("Finished! Successfully aligned {} source sentences to {} target sentences\n".format(self.src_num, self.tgt_num))
         self.result = second_alignment
     
     def print_sents(self):
