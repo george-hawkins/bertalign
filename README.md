@@ -1,5 +1,41 @@
 # Bertalign
 
+> [!IMPORTANT]
+> **This is a modernized fork of Bertalign — cleaned up and brought up to date in June 2026.**
+>
+> The sentence-alignment algorithm (the clever part) is entirely the work of the original authors, **Lei Liu & Min Zhu** — see the [original repository](https://github.com/bfsujason/bertalign), the [Citation](#citation) and the [Credits](#credits). This fork changes *only* the tooling, dependencies and packaging; the alignment method and its results are unchanged.
+
+> [!TIP]
+> **🇯🇵 &nbsp; It now aligns Japanese.**
+>
+> The original handled 25 (mostly European) languages. By switching to a multilingual segmenter this fork aligns **Japanese — and effectively any language the models support — with no per-language configuration.** See it in action: [`examples/rashomon.py`](examples/rashomon.py) aligns Akutagawa's *Rashomon* (羅生門) with its English translation.
+
+## What's new in this fork
+
+- ⬆️ **Fully up-to-date dependencies**, running on **Python 3.14** and managed end to end with **[uv](https://docs.astral.sh/uv/getting-started/installation/)** — the aim being that a single command gets you running.
+- ➖ **Leaner dependency set:** the `faiss` and `sentence-splitter` dependencies have been removed, and `requirements.txt` / `setup.py` replaced by a `pyproject.toml` and a locked `uv.lock`.
+- 🔤 **Modern multilingual sentence segmentation** via **[Segment any Text (SaT)](https://github.com/segment-any-text/wtpsplit)**, an actively maintained, state-of-the-art segmenter that replaces the older `sentence-splitter`. A single model covers every language — which is what unlocks Japanese, and means you no longer tell `Bertalign(...)` which languages you are aligning. (Cross-lingual embeddings still come from the original's choice, multilingual LaBSE.)
+
+<details>
+<summary><strong>Why SaT rather than the more popular spaCy / GiNZA or Stanza?</strong></summary>
+
+[spaCy](https://spacy.io/) (with [GiNZA](https://github.com/megagonlabs/ginza) for Japanese) and [Stanza](https://stanfordnlp.github.io/stanza/) are excellent, but both are **language-specific**: each needs a separate model or pipeline per language, and a Japanese pipeline such as GiNZA drags in heavier, more fragmented dependencies (SudachiPy plus its dictionaries). They are also full NLP frameworks, whereas Bertalign only needs sentence boundaries. SaT is one compact model that segments **all** of its supported languages uniformly — a far better fit for a multilingual aligner, with nothing to configure per language.
+
+</details>
+
+## Quick start
+
+```bash
+git clone https://github.com/<your-fork>/bertalign.git   # the repository you are viewing
+cd bertalign
+uv run python examples/rashomon.py
+```
+
+> [!NOTE]
+> That single `uv run` does everything: it installs Python 3.14, resolves the dependencies and builds the environment for you. The first run also downloads the segmentation and embedding models (~2&nbsp;GB) from Hugging Face, so allow a few minutes — subsequent runs are quick. New to uv? See its [installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+---
+
 An automatic mulitlingual sentence aligner.
 
 Bertalign is designed to facilitate the construction of multilingual parallel corpora and translation memories, which have a wide range of applications in translation-related research such as corpus-based translation studies, contrastive linguistics, computer-assisted translation, translator education and machine translation.
