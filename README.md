@@ -12,9 +12,9 @@
 
 ## What's new in this fork
 
-- ⬆️ **Fully up-to-date dependencies**, running on **Python 3.14** and managed end to end with **[uv](https://docs.astral.sh/uv/getting-started/installation/)** — the aim being that a single command gets you running.
-- ➖ **Leaner dependency set:** the `faiss` and `sentence-splitter` dependencies have been removed, and `requirements.txt` / `setup.py` replaced by a `pyproject.toml` and a locked `uv.lock`.
-- 🔤 **Modern multilingual sentence segmentation** via **[Segment any Text (SaT)](https://github.com/segment-any-text/wtpsplit)**, an actively maintained, state-of-the-art segmenter that replaces the older `sentence-splitter`. A single model covers every language — which is what unlocks Japanese, and means you no longer tell `Bertalign(...)` which languages you are aligning. (Cross-lingual embeddings still come from the original's choice, multilingual LaBSE.)
+- **Fully up-to-date dependencies**, running on **Python 3.14** and managed end to end with **[uv](https://docs.astral.sh/uv/getting-started/installation/)** — the aim being that a single command gets you running.
+- **Leaner dependency set:** the `faiss` and `sentence-splitter` dependencies have been removed, and `requirements.txt` / `setup.py` replaced by a `pyproject.toml` and a locked `uv.lock`.
+- **Modern multilingual sentence segmentation** via **[Segment any Text (SaT)](https://github.com/segment-any-text/wtpsplit)**, an actively maintained, state-of-the-art segmenter that replaces the older `sentence-splitter`. A single model covers every language — which is what unlocks Japanese, and means you no longer tell `Bertalign(...)` which languages you are aligning. (Cross-lingual embeddings still come from the original's choice, multilingual LaBSE.)
 
 <details>
 <summary><strong>Why SaT rather than the more popular spaCy / GiNZA or Stanza?</strong></summary>
@@ -26,7 +26,7 @@
 ## Quick start
 
 ```bash
-git clone https://github.com/<your-fork>/bertalign.git   # the repository you are viewing
+git clone https://github.com/george-hawkins/bertalign.git
 cd bertalign
 uv run python examples/rashomon.py
 ```
@@ -35,6 +35,8 @@ uv run python examples/rashomon.py
 > That single `uv run` does everything: it installs Python 3.14, resolves the dependencies and builds the environment for you. The first run also downloads the segmentation and embedding models (~2&nbsp;GB) from Hugging Face, so allow a few minutes — subsequent runs are quick. New to uv? See its [installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
 ---
+
+# Bertalign - the details
 
 An automatic mulitlingual sentence aligner.
 
@@ -54,20 +56,14 @@ Bertalign aligns text across a wide range of languages. Sentence segmentation is
 
 ## Installation
 
-Bertalign uses [uv](https://docs.astral.sh/uv/) to manage Python and its dependencies. From the repository root:
+The [Quick start](#quick-start) above is all most people need — `uv run` installs Python 3.14 and the dependencies on demand. To create the environment explicitly instead, from the repository root:
 
 ```bash
-uv python install 3.14   # one-time: install the pinned Python (see .python-version)
+uv python install 3.14   # install the pinned Python (see .python-version)
 uv sync                  # create the virtual environment and install all dependencies
 ```
 
-Run the demo, which aligns Akutagawa's *Rashomon* with its English translation:
-
-```bash
-uv run python examples/rashomon.py
-```
-
-It reads the Japanese and English texts from `examples/texts/` — see
+The Rashomon example reads its texts from `examples/texts/` — see
 [examples/texts/README.md](./examples/texts/README.md) for their provenance.
 
 ### You can also install Bertalign and run the examples directly in a [Google Colab notebook](https://colab.research.google.com/drive/123GhXwgwmQp1F5SVZ74_uIgyxo6hLRq0?usp=sharing).
@@ -105,12 +101,12 @@ aligner = Bertalign(src, tgt)
 aligner.align_sents()
 ```
 
-    Source language: Chinese, Number of sentences: 21
-    Target language: English, Number of sentences: 32
+    Number of source sentences: 21
+    Number of target sentences: 33
     Embedding source and target text using LaBSE ...
     Performing first-step alignment ...
     Performing second-step alignment ...
-    Finished! Successfuly aligning 21 Chinese sentences to 32 English sentences
+    Finished! Successfully aligned 21 source sentences to 33 target sentences
 
 ```python
 aligner.print_sents()
@@ -118,61 +114,61 @@ aligner.print_sents()
 
     两年以后，大兴安岭。
     Two years later, the Greater Khingan Mountains
-    
+
     “顺山倒咧——”
     “Tim-ber…”
-    
+
     随着这声嘹亮的号子，一棵如巴特农神庙的巨柱般高大的落叶松轰然倒下，叶文洁感到大地抖动了一下。
     Following the loud chant, a large Dahurian larch, thick as the columns of the Parthenon, fell with a thump, and Ye Wenjie felt the earth quake.
-    
+
     她拿起斧头和短锯，开始去除巨大树身上的枝丫。
     She picked up her ax and saw and began to clear the branches from the trunk.
-    
+
     每到这时，她总觉得自己是在为一个巨人整理遗体。
     Every time she did this, she felt as though she were cleaning the corpse of a giant.
-    
+
     她甚至常常有这样的想象：这巨人就是自己的父亲。
     Sometimes she even imagined the giant was her father.
-    
+
     两年前那个凄惨的夜晚，她在太平间为父亲整理遗容时的感觉就在这时重现。 巨松上那绽开的树皮，似乎就是父亲躯体上累累的伤痕。
     The feelings from that terrible night two years ago when she cleaned her father’s body in the mortuary would resurface, and the splits and cracks in the larch bark seemed to turn into the old scars and new wounds covering her father.
-    
+
     内蒙古生产建设兵团的六个师四十一个团十多万人就分布在这辽阔的森林和草原之间。
     Over one hundred thousand people from the six divisions and forty-one regiments of the Inner Mongolia Production and Construction Corps were scattered among the vast forests and grasslands.
-    
+
     刚从城市来到这陌生的世界时，很多兵团知青都怀着一个浪漫的期望：当苏修帝国主义的坦克集群越过中蒙边境时，他们将飞快地武装起来，用自己的血肉构成共和国的第一道屏障。
     When they first left the cities and arrived at this unfamiliar wilderness, many of the corps’ “educated youths”—young college students who no longer had schools to go to—had cherished a romantic wish: When the tank clusters of the Soviet Revisionist Imperialists rolled over the Sino-Mongolian border, they would arm themselves and make their own bodies the first barrier in the Republic’s defense.
-    
+
     事实上，这也确实是兵团组建时的战略考虑之一。
     Indeed, this expectation was one of the strategic considerations motivating the creation of the Production and Construction Corps.
-    
+
     但他们渴望的战争就像草原天边那跑死马的远山，清晰可见，但到不了眼前，于是他们只有垦荒、放牧和砍伐。
     But the war they craved was like a mountain at the other end of the grassland: clearly visible, but as far away as a mirage. So they had to content themselves with clearing fields, grazing animals, and chopping down trees.
-    
+
     这些曾在“大串联”中燃烧青春的年轻人很快发现，与这广阔天地相比，内地最大的城市不过是个羊圈；在这寒冷无际的草原和森林间，燃烧是无意义的，一腔热血喷出来，比一堆牛粪凉得更快，还不如后者有使用价值。
     Soon, the young men and women who had once expended their youthful energy on tours to the holy sites of the Chinese Revolution discovered that, compared to the huge sky and open air of Inner Mongolia, the biggest cities in China’s interior were nothing more than sheep pens. Stuck in the middle of the cold, endless expanse of forests and grasslands, their burning ardor was meaningless. Even if they spilled all of their blood, it would cool faster than a pile of cow dung, and not be as useful.
-    
+
     但燃烧是他们的命运，他们是燃烧的一代。
     But burning was their fate; they were the generation meant to be consumed by fire.
-    
+
     于是，在他们的油锯和电锯下，大片的林海化为荒山秃岭；在他们的拖拉机和康拜因（联合收割机）下，大片的草原被犁成粮田，然后变成沙漠。
     And so, under their chain saws, vast seas of forests turned into barren ridges and denuded hills. Under their tractors and combine harvesters, vast tracts of grasslands became grain fields, then deserts.
-    
+
     叶文洁看到的砍伐只能用疯狂来形容，高大挺拔的兴安岭落叶松、四季常青的樟子松、亭亭玉立的白桦、耸入云天的山杨、西伯利亚冷杉，以及黑桦、柞树、山榆、水曲柳、钻天柳、蒙古栎，见什么伐什么，几百把油锯如同一群钢铁蝗虫，她的连队所过之处，只剩下一片树桩。
     Ye Wenjie could only describe the deforestation that she witnessed as madness. The tall Dahurian larch, the evergreen Scots pine, the slim and straight white birch, the cloud-piercing Korean aspen, the aromatic Siberian fir, along with black birch, oak, mountain elm, Chosenia arbutifolia—whatever they laid eyes on, they cut down. Her company wielded hundreds of chain saws like a swarm of steel locusts, and after they passed, only stumps were left.
-    
+
     整理好的落叶松就要被履带拖拉机拖走了，在树干另一头，叶文洁轻轻抚摸了一下那崭新的锯断面，她常常下意识地这么做，总觉得那是一处巨大的伤口，似乎能感到大树的剧痛。
     The fallen Dahurian larch, now bereft of branches, was ready to be taken away by tractor. Ye gently caressed the freshly exposed cross section of the felled trunk. She did this often, as though such surfaces were giant wounds, as though she could feel the tree’s pain.
-    
+
     她突然看到，在不远处树桩的锯断面上，也有一只在轻轻抚摸的手，那手传达出的心灵的颤抖，与她产生了共振。
     Suddenly, she saw another hand lightly stroking the matching surface of the stump a few feet away. The tremors in that hand revealed a heart that resonated with hers.
-    
+
     那手虽然很白皙，但能够看出是属于男性的。
     Though the hand was pale, she could tell it belonged to a man.
-    
+
     叶文洁抬头，看到抚摸树桩的人是白沐霖，一个戴眼镜的瘦弱青年，他是兵团《大生产报》的记者，前天刚到连队来采访。
     She looked up. It was Bai Mulin. A slender, delicate man who wore glasses, he was a reporter for the Great Production News, the corps’ newspaper. He had arrived the day before yesterday to gather news about her company.
-    
+
     叶文洁看过他写的文章，文笔很好，其中有一种与这个粗放环境很不协调的纤细和敏感，令她很难忘。
     Ye remembered reading his articles, which were written in a beautiful style, sensitive and fine, ill suited to the rough-hewn environment.
 
@@ -215,60 +211,60 @@ for file in os.listdir(src_dir):
 ```
 
     Start aligning text+berg/de/001 to text+berg/fr/001
-    Source language: German, Number of sentences: 137
-    Target language: French, Number of sentences: 155
+    Number of source sentences: 137
+    Number of target sentences: 155
     Embedding source and target text using LaBSE ...
     Performing first-step alignment ...
     Performing second-step alignment ...
-    Finished! Successfuly aligning 137 German sentences to 155 French sentences
+    Finished! Successfully aligned 137 source sentences to 155 target sentences
     
     Start aligning text+berg/de/002 to text+berg/fr/002
-    Source language: German, Number of sentences: 293
-    Target language: French, Number of sentences: 274
+    Number of source sentences: 293
+    Number of target sentences: 274
     Embedding source and target text using LaBSE ...
     Performing first-step alignment ...
     Performing second-step alignment ...
-    Finished! Successfuly aligning 293 German sentences to 274 French sentences
+    Finished! Successfully aligned 293 source sentences to 274 target sentences
     
     Start aligning text+berg/de/003 to text+berg/fr/003
-    Source language: German, Number of sentences: 95
-    Target language: French, Number of sentences: 100
+    Number of source sentences: 95
+    Number of target sentences: 100
     Embedding source and target text using LaBSE ...
     Performing first-step alignment ...
     Performing second-step alignment ...
-    Finished! Successfuly aligning 95 German sentences to 100 French sentences
+    Finished! Successfully aligned 95 source sentences to 100 target sentences
     
     Start aligning text+berg/de/004 to text+berg/fr/004
-    Source language: German, Number of sentences: 107
-    Target language: French, Number of sentences: 112
+    Number of source sentences: 107
+    Number of target sentences: 112
     Embedding source and target text using LaBSE ...
     Performing first-step alignment ...
     Performing second-step alignment ...
-    Finished! Successfuly aligning 107 German sentences to 112 French sentences
+    Finished! Successfully aligned 107 source sentences to 112 target sentences
     
     Start aligning text+berg/de/005 to text+berg/fr/005
-    Source language: German, Number of sentences: 36
-    Target language: French, Number of sentences: 40
+    Number of source sentences: 36
+    Number of target sentences: 40
     Embedding source and target text using LaBSE ...
     Performing first-step alignment ...
     Performing second-step alignment ...
-    Finished! Successfuly aligning 36 German sentences to 40 French sentences
+    Finished! Successfully aligned 36 source sentences to 40 target sentences
     
     Start aligning text+berg/de/006 to text+berg/fr/006
-    Source language: German, Number of sentences: 126
-    Target language: French, Number of sentences: 131
+    Number of source sentences: 126
+    Number of target sentences: 131
     Embedding source and target text using LaBSE ...
     Performing first-step alignment ...
     Performing second-step alignment ...
-    Finished! Successfuly aligning 126 German sentences to 131 French sentences
+    Finished! Successfully aligned 126 source sentences to 131 target sentences
     
     Start aligning text+berg/de/007 to text+berg/fr/007
-    Source language: German, Number of sentences: 197
-    Target language: French, Number of sentences: 199
+    Number of source sentences: 197
+    Number of target sentences: 199
     Embedding source and target text using LaBSE ...
     Performing first-step alignment ...
     Performing second-step alignment ...
-    Finished! Successfuly aligning 197 German sentences to 199 French sentences
+    Finished! Successfully aligned 197 source sentences to 199 target sentences
 
 ```python
 scores = score_multiple(gold_list=gold_alignments, test_list=test_alignments)
