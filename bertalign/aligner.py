@@ -49,10 +49,16 @@ class Bertalign:
         src_num = len(src_sents)
         tgt_num = len(tgt_sents)
 
-        print("Number of source sentences: {}".format(src_num))
-        print("Number of target sentences: {}".format(tgt_num))
+        if src_num == 0 or tgt_num == 0:
+            raise ValueError(
+                f"Both texts must contain at least one sentence "
+                f"(got {src_num} source, {tgt_num} target)."
+            )
 
-        print("Embedding source and target text using {} ...".format(model.model_name))
+        print(f"Number of source sentences: {src_num}")
+        print(f"Number of target sentences: {tgt_num}")
+
+        print(f"Embedding source and target text using {model.model_name} ...")
         src_vecs, src_lens = model.transform(src_sents, max_align - 1)
         tgt_vecs, tgt_lens = model.transform(tgt_sents, max_align - 1)
 
@@ -67,6 +73,7 @@ class Bertalign:
         self.char_ratio = char_ratio
         self.src_vecs = src_vecs
         self.tgt_vecs = tgt_vecs
+        self.result = None
 
     def align_sents(self):
 
@@ -120,13 +127,14 @@ class Bertalign:
         )
 
         print(
-            "Finished! Successfully aligned {} source sentences to {} target sentences\n".format(
-                self.src_num, self.tgt_num
-            )
+            f"Finished! Successfully aligned {self.src_num} source sentences "
+            f"to {self.tgt_num} target sentences\n"
         )
         self.result = second_alignment
 
     def print_sents(self):
+        if self.result is None:
+            raise RuntimeError("No alignment to print; call align_sents() first.")
         for bead in self.result:
             src_line = self._get_line(bead[0], self.src_sents)
             tgt_line = self._get_line(bead[1], self.tgt_sents)
