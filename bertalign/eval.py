@@ -113,17 +113,15 @@ def log_final_scores(res):
     print(" ---------------------------------", file=sys.stderr)
     print("|             |  Strict |    Lax  |", file=sys.stderr)
     print(
-        "| Precision   |   {precision_strict:.3f} |   {precision_lax:.3f} |".format(
-            **res
-        ),
+        f"| Precision   |   {res['precision_strict']:.3f} |   {res['precision_lax']:.3f} |",
         file=sys.stderr,
     )
     print(
-        "| Recall      |   {recall_strict:.3f} |   {recall_lax:.3f} |".format(**res),
+        f"| Recall      |   {res['recall_strict']:.3f} |   {res['recall_lax']:.3f} |",
         file=sys.stderr,
     )
     print(
-        "| F1          |   {f1_strict:.3f} |   {f1_lax:.3f} |".format(**res),
+        f"| F1          |   {res['f1_strict']:.3f} |   {res['f1_lax']:.3f} |",
         file=sys.stderr,
     )
     print(" ---------------------------------", file=sys.stderr)
@@ -136,13 +134,13 @@ def read_alignments(file):
             fields = [x.strip() for x in line.split(":") if len(x.strip())]
             if len(fields) < 2:
                 raise Exception(
-                    'Got line "%s", which does not have at least two ":" separated fields'
-                    % line.strip()
+                    f'Got line "{line.strip()}", which does not have at least '
+                    f'two ":" separated fields'
                 )
             try:
                 src = literal_eval(fields[0])
                 tgt = literal_eval(fields[1])
             except Exception as e:
-                raise Exception('Failed to parse line "%s"' % line.strip()) from e
+                raise Exception(f'Failed to parse line "{line.strip()}"') from e
             alignments.append((src, tgt))
     return alignments
